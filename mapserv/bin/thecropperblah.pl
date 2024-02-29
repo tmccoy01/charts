@@ -3,7 +3,8 @@ use strict;
 use warnings;
 
 use Geo::GDAL;
-use lib '/home/mapserv/perl';
+# use lib '/home/mapserv/perl';
+use lib '/root/perl';
 use Spork;
 $|=1;
 
@@ -127,7 +128,8 @@ eval {
 my $i=$ARGV[0];
 my $infile = $tempfile;
 
-my $basepath="/home/mapserv/";
+# my $basepath="/home/mapserv/";
+my $basepath="/root/";
 my $shapeindex_work=$basepath."charts/work/";
 my $shapeindex_out=$basepath."charts/index/";
 
@@ -378,7 +380,7 @@ $file->{'stage'} =1;
   ######################################
   my @cutline;
 
-  
+  print $refbox."\n";
   # now we have points, make lines
   for my $cki (0..@refbox - 1 ) {
     my $ckj = $cki+1;
@@ -391,7 +393,7 @@ $file->{'stage'} =1;
     my $pixlength = int( sqrt(($refbox[$cki]->{'x_p'} - $refbox[$ckj]->{'x_p'} )**2  + 
 			      ($refbox[$cki]->{'y_p'} - $refbox[$ckj]->{'y_p'} )**2  ) /12.3 ) ;
     
-#    print $pixlength."\n";
+    print $pixlength."\n";
     if ($pixlength == 0 ) {
       die "Returned pixlength is 0, duplicate points?";
     };

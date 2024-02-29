@@ -6,10 +6,15 @@ use Geo::GDAL;
 use IPC::Open3;
 use File::Find;
     use Symbol qw(gensym);
-use lib '/home/mapserv/perl';
+# use lib '/home/mapserv/perl';
+use lib '/root/perl';
+use lib;
 use Spork;
-my $thecropper_path = "/home/mapserv/bin/thecropper.pl";
-my $thecropper2_path = "/home/mapserv/bin/thecropperblah.pl";
+my $thecropper_path = "/root/bin/thecropper.pl";
+my $thecropper2_path = "/root/bin/thecropperblah.pl";
+# my $thecropper_path = "/home/mapserv/bin/thecropper.pl";
+# my $thecropper2_path = "/home/mapserv/bin/thecropperblah.pl";
+
 
 
 my $mem="768";
@@ -91,7 +96,8 @@ if (defined $ARGV[0] && $ARGV[0] eq "test" ) {
 
 
 
-my $basepath="/home/mapserv/";
+# my $basepath="/home/mapserv/";
+my $basepath="/root/";
 
 my $shapeindex_work=$basepath."charts/work".$test."/";
 my $shapeindex_out=$basepath."charts/index".$test."/";
@@ -353,7 +359,7 @@ for $i (sort { $outparse{$b}{0}{'res'} <=> $outparse{$a}{0}{'res'} } keys %outpa
   
       $outstring .= "LAYER\n";
       $outstring .= "NAME \"".$d->{'nospacename'}."\"\n";
-	  $outstring .= "GROUP \"".$d->{'nospacebasename'}."\"\n";
+	    $outstring .= "GROUP \"".$d->{'nospacebasename'}."\"\n";
       $outstring .= "METADATA\n";
       $outstring .= "\"wms_title\" \"".$d->{'longname'}."\"\n";
       $outstring .= "END\n";
@@ -376,7 +382,7 @@ for $i (sort { $outparse{$b}{0}{'res'} <=> $outparse{$a}{0}{'res'} } keys %outpa
     close MAP;
 # shape index
     print_system "gdaltindex",$shapeindex_work.$charttype."_index.shp",@index_shp;
-    print_system "shptree",$shapeindex_work.$charttype."_index.shp";
+    # print_system "shptree",$shapeindex_work.$charttype."_index.shp";
     for my $moveit (glob($shapeindex_work.$charttype."_index.*" ) ) {
 	my $out = $moveit;
 	$out =~ s/$shapeindex_work/$shapeindex_out/;
@@ -385,7 +391,7 @@ for $i (sort { $outparse{$b}{0}{'res'} <=> $outparse{$a}{0}{'res'} } keys %outpa
 
 
     print_system "gdaltindex",$shapeindex_work.$charttype."_4326_index.shp",@index_shp_4326;
-    print_system "shptree",$shapeindex_work.$charttype."_4326_index.shp";
+    # print_system "shptree",$shapeindex_work.$charttype."_4326_index.shp";
     for my $moveit (glob($shapeindex_work.$charttype."_4326_index.*" ) ) {
 	my $out = $moveit;
 	$out =~ s/$shapeindex_work/$shapeindex_out/;

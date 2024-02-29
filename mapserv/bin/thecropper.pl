@@ -3,7 +3,8 @@ use strict;
 use warnings;
 
 use Geo::GDAL;
-use lib '/home/mapserv/perl';
+# use lib '/home/mapserv/perl';
+use lib '/root/perl';
 use Spork;
 $|=1;
 
@@ -129,7 +130,8 @@ eval {
 my $i=$ARGV[0];
 my $infile = $tempfile;
 
-my $basepath="/home/mapserv/";
+# my $basepath="/home/mapserv/";
+my $basepath="/root/";
 my $shapeindex_work=$basepath."charts/work/";
 my $shapeindex_out=$basepath."charts/index/";
 
@@ -156,11 +158,6 @@ if ($i =~ /$basepath/ ) {
     print "Bref_Path: $bref_file\n";
 };
 
-
-
-
-
-
 my $data = Geo::GDAL::Open($i,"ReadOnly");
 my $wkt = $data->Projection();
     if (!defined $wkt || $wkt eq "" ) {
@@ -175,14 +172,14 @@ my $srout = Geo::OSR::SpatialReference->new('EPSG' => 4326) ;
 my $reproj = new Geo::OSR::CoordinateTransformation($sr,$srout);
 my $invreproj = new Geo::OSR::CoordinateTransformation($srout,$sr);
 
-    my $rotated=0;
+my $rotated=0;
 
-    my ($width,$height,$minx,$miny,$maxx,$maxy, @gt) = getinfo($data);
+my ($width,$height,$minx,$miny,$maxx,$maxy, @gt) = getinfo($data);
 
-    if ($gt[2] != 0 || $gt[4] != 0 ) {
+if ($gt[2] != 0 || $gt[4] != 0 ) {
 	$rotated=1;
 	print "ROTATED\n";
-    };
+};
 
 my $rastercount = $data->{'RasterCount'};
 print "Raster Count: $rastercount\n";
@@ -380,7 +377,7 @@ $file->{'stage'} =1;
   ######################################
   my @cutline;
 
-  
+
   # now we have points, make lines
   for my $cki (0..@refbox - 1 ) {
     my $ckj = $cki+1;
@@ -393,7 +390,7 @@ $file->{'stage'} =1;
     my $pixlength = int( sqrt(($refbox[$cki]->{'x_p'} - $refbox[$ckj]->{'x_p'} )**2  + 
 			      ($refbox[$cki]->{'y_p'} - $refbox[$ckj]->{'y_p'} )**2  ) /6.3 ) ;
     
-#    print $pixlength."\n";
+    print $pixlength."\n";
     if ($pixlength == 0 ) {
       die "Returned pixlength is 0, duplicate points?";
     };
