@@ -1,0 +1,29 @@
+services:
+  mapproxy:
+    build:
+      context: .
+      dockerfile: mapproxy/Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./mapproxy:/app/mapproxy
+      - mapproxy_cache:/cache
+    environment:
+      - MAPPROXY_PROCESSES=4
+    depends_on:
+      - mapserver
+
+  mapserver:
+    build:
+      context: ./mapserv
+      dockerfile: Dockerfile
+    volumes:
+      - ./mapserv/mapfiles:/home/mapserv/mapfiles
+      - ./mapserv/charts:/home/mapserv/charts
+      - ./mapserv/bin:/home/mapserv/bin
+      - ./mapserv/perl:/home/mapserv/perl
+    environment:
+      - MS_DEBUGLEVEL=0
+
+volumes:
+  mapproxy_cache:

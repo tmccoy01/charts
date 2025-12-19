@@ -1,0 +1,7 @@
+.git
+.venv
+mapserv/charts
+mapproxy/cache
+__pycache__
+*.pyc
+.DS_Store

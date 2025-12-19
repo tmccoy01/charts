@@ -258,7 +258,7 @@ sources:
     image:
       transparent: true
     req:
-      url: http://mapserv.example.com/mapserv
+      url: http://mapserver/mapserv
       layers: sec
       concurrent_requests: 4
 
@@ -287,7 +287,7 @@ sources:
     image:
        transparent: true
     req:
-      url: http://mapserv.example.com/mapserv
+      url: http://mapserver/mapserv
       layers: tac
       concurrent_requests: 4
 
@@ -316,7 +316,7 @@ sources:
     image:
       transparent: true
     req:
-      url: http://mapserv.example.com/mapserv
+      url: http://mapserver/mapserv
       layers: hel
       concurrent_requests: 4
 
@@ -346,7 +346,7 @@ sources:
     image:
       transparent: true
     req:
-      url: http://mapserv.example.com/mapserv
+      url: http://mapserver/mapserv
       layers: enrl
       concurrent_requests: 4
 
@@ -375,7 +375,7 @@ sources:
     image:
       transparent: true
     req:
-      url: http://mapserv.example.com/mapserv
+      url: http://mapserver/mapserv
       layers: enrh
       concurrent_requests: 4
 
@@ -406,7 +406,7 @@ sources:
     image:
       transparent: true
     req:
-      url: http://mapserv.example.com/mapserv
+      url: http://mapserver/mapserv
       layers: enra
       concurrent_requests: 4
 
@@ -495,9 +495,9 @@ grids:
 globals:
   cache:
     # where to store the cached images
-    base_dir: '/home/wms/cache/chart'
+    base_dir: '/cache/chart'
     # where to store lockfiles
-    lock_dir: '/home/wms/cache/chart/locks'
+    lock_dir: '/cache/chart/locks'
   #   # request x*y tiles in one step
   #   meta_size: [4, 4]
   #   # add a buffer on all sides (in pixel) when requesting
