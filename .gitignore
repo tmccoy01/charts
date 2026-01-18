@@ -3,6 +3,8 @@
 .AppleDouble
 .LSOverride
 ._*
+.dockerignore
+.env
 
 # Python
 __pycache__/
@@ -25,10 +27,12 @@ mapserv/charts/enrl/
 mapserv/charts/enrh/
 mapserv/charts/enra/
 mapserv/charts/misc/
+*.egg-info
 
 # Ignore working and index directories created by makemap3.pl
 mapserv/charts/work/
 mapserv/charts/index/
+
 # Ignore zip downloads and extracted TIFs anywhere they might appear
 *.zip
 *.tif
@@ -39,3 +43,6 @@ mapserv/charts/index/
 # Keep explicitly:
 !mapserv/charts/bref/
 !mapserv/charts/*.sh
+
+# Opencode
+.opencode

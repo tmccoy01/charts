@@ -23,7 +23,10 @@ import time
 import subprocess
 
 # Configuration
-BASE_DIR = Path("mapserv/charts")
+from dotenv import load_dotenv
+load_dotenv()
+BASE_DIR = Path(os.getenv('CHARTS_BASE_DIR', 'mapserv/charts'))
+# BASE_DIR = Path("mapserv/charts")
 VFR_URL = "https://www.faa.gov/air_traffic/flight_info/aeronav/digital_products/vfr/"
 IFR_URL = "https://www.faa.gov/air_traffic/flight_info/aeronav/digital_products/ifr/"
 
@@ -49,9 +52,10 @@ TYPE_PATTERNS: List[Tuple[str, str]] = [
     (r"/enr_l", "enrl"),
     (r"/enr_h", "enrh"),
     (r"/enr_a", "enra"),
-    (r"/enr_akl", "enrl"), # Alaska Low treated as Low
-    (r"/enr_akh", "enrh"), # Alaska High treated as High
+    (r"/enr_akl", "enrl"),  # Alaska Low treated as Low
+    (r"/enr_akh", "enrh"),  # Alaska High treated as High
 ]
+
 
 def get_url_content(url: str) -> Optional[str]:
     """
@@ -71,11 +75,13 @@ def get_url_content(url: str) -> Optional[str]:
         print(f"Error fetching {url}: {e}")
         return None
 
+
 class ZipLinkParser(HTMLParser):
     """
     Simple HTML Parser to extract .zip file links from <a> tags.
     Targeting links typically hosted on 'aeronav.faa.gov'.
     """
+
     def __init__(self) -> None:
         super().__init__()
         self.links: List[str] = []
@@ -88,6 +94,7 @@ class ZipLinkParser(HTMLParser):
             href_val = dict(attrs).get('href')
             if href_val and href_val.endswith('.zip') and "aeronav.faa.gov" in href_val:
                 self.links.append(href_val)
+
 
 def print_progress(iteration: int, total: int, prefix: str = '', suffix: str = '', decimals: int = 1, length: int = 50, fill: str = '█', printEnd: str = "\r") -> None:
     """
@@ -102,7 +109,8 @@ def print_progress(iteration: int, total: int, prefix: str = '', suffix: str = '
         fill        - Optional  : bar fill character (Str)
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    percent = ("{0:." + str(decimals) + "f}").format(100 *
+                                                     (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '-' * (length - filledLength)
     sys.stdout.write(f'\r{prefix} |{bar}| {percent}% {suffix}')
@@ -110,6 +118,7 @@ def print_progress(iteration: int, total: int, prefix: str = '', suffix: str = '
     # Print New Line on Complete
     if iteration == total:
         print()
+
 
 def download_file(url: str, quiet: bool = False) -> str:
     """
@@ -119,26 +128,26 @@ def download_file(url: str, quiet: bool = False) -> str:
     Args:
         url: The URL of the zip file to download.
         quiet: If True, suppress normal output (useful for progress bars).
-    
+
     Returns:
         A status string indicating the result (e.g., "Downloaded", "Skipped", "Failed").
     """
     status = "Unknown"
     filename = url.split('/')[-1]
-    
+
     # Identify type based on URL pattern
     chart_type = "misc"
     for pattern, code in TYPE_PATTERNS:
         if re.search(pattern, url, re.IGNORECASE):
             chart_type = code
             break
-            
+
     # Extract date from URL (typical format: .../11-27-2025/...)
     # This ensures we organize charts by their effective date cycle.
     date_match = re.search(r'/(\d{2}-\d{2}-\d{4})/', url)
     if not date_match:
         # Fallback: if date not found in URL, use current date.
-        date_str = datetime.now().strftime("%Y%m%d")
+        date_str = get_current_chart_cycle()
     else:
         d_str = date_match.group(1)
         # Convert MM-DD-YYYY to YYYYMMDD
@@ -146,20 +155,20 @@ def download_file(url: str, quiet: bool = False) -> str:
             dt = datetime.strptime(d_str, "%m-%d-%Y")
             date_str = dt.strftime("%Y%m%d")
         except ValueError:
-            date_str = datetime.now().strftime("%Y%m%d")
+            date_str = get_current_chart_cycle()
 
     # Define target directory: mapserv/charts/<type>/<date>
     target_dir = BASE_DIR / chart_type / date_str
     target_dir.mkdir(parents=True, exist_ok=True)
-    
+
     local_path = target_dir / filename
-    
+
     # Check if file already exists to avoid re-downloading
     if local_path.exists():
         if not quiet:
             print(f"Skipping {filename} (already exists)")
         return "Skipped"
-        
+
     if not quiet:
         print(f"Downloading {filename} to {chart_type}/{date_str}...")
     try:
@@ -172,12 +181,14 @@ def download_file(url: str, quiet: bool = False) -> str:
             status = "Downloaded"
         except (zipfile.BadZipFile, NotImplementedError) as e:
             if not quiet:
-                print(f"\n  Warning: Python zipfile failed ({e}), trying system unzip...")
+                print(
+                    f"\n  Warning: Python zipfile failed ({e}), trying system unzip...")
             # Fallback to system unzip command
             try:
                 subprocess.run(
-                    ["unzip", "-o", "-q", str(local_path), "-d", str(target_dir)], 
-                    check=True, 
+                    ["unzip", "-o", "-q",
+                        str(local_path), "-d", str(target_dir)],
+                    check=True,
                     capture_output=True
                 )
                 status = "Downloaded (Fallback)"
@@ -190,8 +201,27 @@ def download_file(url: str, quiet: bool = False) -> str:
     except Exception as e:
         print(f"\n  Failed: {filename} - {e}")
         status = "Failed"
-    
+
     return status
+
+
+def get_current_chart_cycle() -> str:
+    """Get the current chart cycle date from FAA or use latest directory."""
+    charts_base = Path(BASE_DIR)
+    if not charts_base.exists():
+        return datetime.now().strftime("%Y%m%d")
+
+    # Find the latest date directory
+    date_dirs = []
+    for chart_type in ['sec', 'tac', 'hel', 'enrl', 'enrh', 'enra']:
+        type_dir = charts_base / chart_type
+        if type_dir.exists():
+            date_dirs.extend(
+                [d.name for d in type_dir.iterdir() if d.is_dir()])
+    if date_dirs:
+        return max(date_dirs)
+    return datetime.now().strftime("%Y%m%d")
+
 
 def main() -> None:
     """
@@ -199,7 +229,14 @@ def main() -> None:
     Scrapes VFR and IFR pages and initiates downloads for all found charts.
     """
     print(">>> FAA Chart Downloader (Standard Lib)")
-    
+
+    # Get current chart cycle and display it
+    current_cycle = get_current_chart_cycle()
+    print(f">>> Current chart cycle: {current_cycle}")
+
+    # Ensure base directory exists
+    BASE_DIR.mkdir(parents=True, exist_ok=True)
+
     # 1. Scrape VFR Charts
     html_vfr = get_url_content(VFR_URL)
     if html_vfr:
@@ -207,14 +244,16 @@ def main() -> None:
         parser.feed(html_vfr)
         vfr_links = list(set(parser.links))
         print(f"Found {len(vfr_links)} VFR chart links.")
-        
+
         print("Downloading VFR charts...")
         # Initial call to print 0% progress
-        print_progress(0, len(vfr_links), prefix='VFR Progress:', suffix='Complete', length=40)
-        
-        for i, link in enumerate(vfr_links): 
+        print_progress(0, len(vfr_links), prefix='VFR Progress:',
+                       suffix='Complete', length=40)
+
+        for i, link in enumerate(vfr_links):
             download_file(link, quiet=True)
-            print_progress(i + 1, len(vfr_links), prefix='VFR Progress:', suffix='Complete', length=40)
+            print_progress(i + 1, len(vfr_links),
+                           prefix='VFR Progress:', suffix='Complete', length=40)
 
     # 2. Scrape IFR Charts
     html_ifr = get_url_content(IFR_URL)
@@ -223,16 +262,19 @@ def main() -> None:
         parser.feed(html_ifr)
         ifr_links = list(set(parser.links))
         print(f"Found {len(ifr_links)} IFR chart links.")
-        
+
         print("Downloading IFR charts...")
         # Initial call to print 0% progress
-        print_progress(0, len(ifr_links), prefix='IFR Progress:', suffix='Complete', length=40)
-        
+        print_progress(0, len(ifr_links), prefix='IFR Progress:',
+                       suffix='Complete', length=40)
+
         for i, link in enumerate(ifr_links):
             download_file(link, quiet=True)
-            print_progress(i + 1, len(ifr_links), prefix='IFR Progress:', suffix='Complete', length=40)
+            print_progress(i + 1, len(ifr_links),
+                           prefix='IFR Progress:', suffix='Complete', length=40)
 
     print("\n>>> Download complete.")
+
 
 if __name__ == "__main__":
     main()

@@ -5,13 +5,29 @@ use warnings;
 use Geo::GDAL;
 use IPC::Open3;
 use File::Find;
-    use Symbol qw(gensym);
-# use lib '/home/mapserv/perl';
-use lib '/root/perl';
+use Symbol qw(gensym);
+
+# Environment-based configuration
+my $base_path = $ENV{MAPSERV_BASE_PATH} || '/home/mapserv/';
+my $charts_dir = $ENV{CHARTS_BASE_DIR} || "$base_path/charts";
+my $mapfiles_dir = $ENV{MAPFILES_DIR} || "$base_path/mapfiles";
+my $bin_dir = $ENV{BIN_DIR} || "$base_path/bin";
+my $perl_lib_dir = $ENV{PERL_LIB_DIR} || "$base_path/perl";
+
+# Path configuration
+my $thecropper_path = "$bin_dir/thecropper.pl";
+my $thecropper2_path = "$bin_dir/thecropperblah.pl";
+
+# Add to library path
+use lib $perl_lib_dir;
 use lib;
-use Spork;
-my $thecropper_path = "/root/bin/thecropper.pl";
-my $thecropper2_path = "/root/bin/thecropperblah.pl";
+
+# use lib '/home/mapserv/perl';
+# use lib '/home/mapserv/perl';
+# use lib;
+# use Spork;
+# my $thecropper_path = "/home/mapserv/bin/thecropper.pl";
+# my $thecropper2_path = "/home/mapserv/bin/thecropperblah.pl";
 # my $thecropper_path = "/home/mapserv/bin/thecropper.pl";
 # my $thecropper2_path = "/home/mapserv/bin/thecropperblah.pl";
 
@@ -42,6 +58,21 @@ sub get_res {
   return (sqrt ( $gt[1] ** 2 + $gt[4] ** 2 )  +
     sqrt ( $gt[2] ** 2 + $gt[5] ** 2 ) ) /2 ;
 };
+
+sub validate_paths {
+    my @required_paths = ($charts_dir, $mapfiles_dir, $bin_dir);
+    for my $path (@required_paths) {
+        unless (-d $path) {
+            die "Required directory $path does not exist. $path\n";
+        }
+    }
+
+    unless (-f $thecropper_path) {
+        die "Required file $thecropper_path does not exist.\n";
+    }
+}
+
+validate_paths();
 
 sub do_convert {
   my ($file) = @_;
@@ -97,7 +128,8 @@ if (defined $ARGV[0] && $ARGV[0] eq "test" ) {
 
 
 # my $basepath="/home/mapserv/";
-my $basepath="/root/";
+# my $basepath="/home/mapserv/";
+my $basepath="/home/mapserv/";
 
 my $shapeindex_work=$basepath."charts/work".$test."/";
 my $shapeindex_out=$basepath."charts/index".$test."/";

@@ -1,0 +1,140 @@
+{
+    "network_overview": {
+        "lan": {
+            "subnet_cidr": "192.168.1.0/24",
+            "default_gateway": "192.168.1.1",
+            "router": {
+                "vendor_family": "Netgear Nighthawk-class",
+                "role": [
+                    "L3 gateway",
+                    "NAT to internet"
+                ]
+            },
+            "topology": {
+                "type": "flat_lan",
+                "vlans": {
+                    "in_use": false,
+                    "notes": "No VLAN segmentation assumed for this handoff."
+                }
+            }
+        },
+        "dhcp": {
+            "enabled": true,
+            "authoritative_server": {
+                "service": "Pi-hole DHCP",
+                "ip": "192.168.1.100",
+                "host_type": "Proxmox LXC",
+                "lxc_id": 100
+            },
+            "lease_pool": {
+                "start": "192.168.1.130",
+                "end": "192.168.1.199"
+            },
+            "options": {
+                "router_option_3_default_gateway": "192.168.1.1",
+                "dns_option_6_dns_server": "192.168.1.100"
+            }
+        },
+        "dns": {
+            "primary_dns_server": {
+                "service": "Pi-hole",
+                "ip": "192.168.1.100",
+                "host_type": "Proxmox LXC",
+                "lxc_id": 100,
+                "role": [
+                    "DNS resolver",
+                    "ad-blocking/filtering"
+                ]
+            },
+            "client_behavior_expected": {
+                "dns_server": "192.168.1.100",
+                "dns_assignment_source": "DHCP (from Pi-hole)"
+            }
+        },
+        "client_expectations": {
+            "ip_address_range_expected": "192.168.1.130-192.168.1.199",
+            "gateway_expected": "192.168.1.1",
+            "dns_expected": "192.168.1.100",
+            "notes": [
+                "Clients outside the DHCP range are likely static assignments or reservations.",
+                "Internet traffic should route via 192.168.1.1; DNS queries should go to 192.168.1.100."
+            ]
+        },
+        "homelab_context": {
+            "virtualization": {
+                "platform": "Proxmox",
+                "networking_model": "Services hosted on VMs/LXCs attach to the same 192.168.1.0/24 LAN."
+            },
+            "key_services": [
+                {
+                    "name": "Pi-hole",
+                    "role": [
+                        "DHCP",
+                        "DNS/ad-blocking"
+                    ],
+                    "ip": "192.168.1.100",
+                    "host": "Proxmox LXC",
+                    "lxc_id": 100
+                },
+                {
+                    "name": "Home Assistant",
+                    "role": [
+                        "home automation"
+                    ],
+                    "host": "Proxmox VM"
+                },
+                {
+                    "name": "Homebridge",
+                    "role": [
+                        "HomeKit bridge"
+                    ],
+                    "host": "Proxmox LXC"
+                },
+                {
+                    "name": "Media / storage services",
+                    "role": [
+                        "media storage/shares"
+                    ],
+                    "host": "Proxmox LXC"
+                },
+                {
+                    "name": "Servarr/Jellyfin stack",
+                    "role": [
+                        "media automation",
+                        "streaming"
+                    ],
+                    "host": "Proxmox VM (Docker)"
+                }
+            ],
+            "optional_components": [
+                {
+                    "name": "Reverse proxy (e.g., Nginx Proxy Manager)",
+                    "role": [
+                        "service ingress/proxying"
+                    ],
+                    "required_for_core_networking": false
+                }
+            ]
+        },
+        "validation_checks": {
+            "macos": [
+                "route -n get default",
+                "scutil --dns | head -n 40",
+                "ipconfig getifaddr en0"
+            ],
+            "windows_powershell": [
+                "ipconfig /all"
+            ],
+            "linux": [
+                "ip route | head",
+                "resolvectl status || cat /etc/resolv.conf",
+                "ip addr"
+            ],
+            "expected_values": {
+                "default_gateway": "192.168.1.1",
+                "dns_server": "192.168.1.100",
+                "dhcp_pool": "192.168.1.130-192.168.1.199"
+            }
+        }
+    }
+}

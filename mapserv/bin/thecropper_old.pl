@@ -8,6 +8,8 @@ use lib '/home/mapserv/perl';
 use Spork;
 $|=1;
 
+my $mem="128";
+$ENV{'GDAL_CACHEMAX'} = $mem;
 
 my @gdalopts = ("-co","COMPRESS=DEFLATE","-co","PREDICTOR=2","-co","TILED=YES" );
 my $tempfile = "/tmp/temp1.$$.tif";
@@ -156,11 +158,6 @@ if ($i =~ /$basepath/ ) {
     print "Bref_Path: $bref_file\n";
 };
 
-
-
-
-
-
 my $data = Geo::GDAL::Open($i,"ReadOnly");
 my $wkt = $data->Projection();
     if (!defined $wkt || $wkt eq "" ) {
@@ -171,18 +168,20 @@ my $sr = Geo::OSR::SpatialReference->new('WKT' => $wkt);
 my $p4 = $sr->ExportToProj4();
 #print $p4."\n";
 my $srout = Geo::OSR::SpatialReference->new('EPSG' => 4326) ; 
+$srout->SetAxisMappingStrategy($Geo::OSR::OAMS_TRADITIONAL_GIS_ORDER);
+
 
 my $reproj = new Geo::OSR::CoordinateTransformation($sr,$srout);
 my $invreproj = new Geo::OSR::CoordinateTransformation($srout,$sr);
 
-    my $rotated=0;
+my $rotated=0;
 
-    my ($width,$height,$minx,$miny,$maxx,$maxy, @gt) = getinfo($data);
+my ($width,$height,$minx,$miny,$maxx,$maxy, @gt) = getinfo($data);
 
-    if ($gt[2] != 0 || $gt[4] != 0 ) {
+if ($gt[2] != 0 || $gt[4] != 0 ) {
 	$rotated=1;
 	print "ROTATED\n";
-    };
+};
 
 my $rastercount = $data->{'RasterCount'};
 print "Raster Count: $rastercount\n";
@@ -380,7 +379,7 @@ $file->{'stage'} =1;
   ######################################
   my @cutline;
 
-  print $refbox."\n";
+
   # now we have points, make lines
   for my $cki (0..@refbox - 1 ) {
     my $ckj = $cki+1;
@@ -391,7 +390,7 @@ $file->{'stage'} =1;
     my $linetype = $refbox[$cki]->{'linetype'};
     # determine the number of pixels for this line in pixel space
     my $pixlength = int( sqrt(($refbox[$cki]->{'x_p'} - $refbox[$ckj]->{'x_p'} )**2  + 
-			      ($refbox[$cki]->{'y_p'} - $refbox[$ckj]->{'y_p'} )**2  ) /12.3 ) ;
+			      ($refbox[$cki]->{'y_p'} - $refbox[$ckj]->{'y_p'} )**2  ) /6.3 ) ;
     
     print $pixlength."\n";
     if ($pixlength == 0 ) {
@@ -556,7 +555,7 @@ for my $file (@filelist) {
       @da = ();
 }
 # "-wm" $mem
-  print_system "/home/mapserv/bin/local-gdalwarp","-r","cubic",(@gdalopts, @da),
+  print_system "gdalwarp","-wm",$mem,"-r","cubic",(@gdalopts, @da),
   @{$file->{'gdalwarp_opts'}},$file->{'infile'},$file->{'outfile'} ;
   if ($?) { 
       die "gdalwarp: $?";
