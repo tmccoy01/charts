@@ -15,12 +15,17 @@ my $bin_dir = $ENV{BIN_DIR} || "$base_path/bin";
 my $perl_lib_dir = $ENV{PERL_LIB_DIR} || "$base_path/perl";
 
 # Path configuration
-my $thecropper_path = "$bin_dir/thecropper.pl";
+# Use `thecropperblah.pl` as the primary cropper since `thecropper.pl` is not
+# compatible with strict/warnings in this repo state.
+my $thecropper_path = "$bin_dir/thecropperblah.pl";
 my $thecropper2_path = "$bin_dir/thecropperblah.pl";
 
-# Add to library path
-use lib $perl_lib_dir;
-use lib;
+# Add to library path (runtime-safe)
+BEGIN {
+    my $dir = $ENV{PERL_LIB_DIR}
+        || ($ENV{MAPSERV_BASE_PATH} ? "$ENV{MAPSERV_BASE_PATH}/perl" : "/home/mapserv/perl");
+    unshift @INC, $dir if defined $dir && length $dir;
+}
 
 # use lib '/home/mapserv/perl';
 # use lib '/home/mapserv/perl';
@@ -37,7 +42,7 @@ my $mem="768";
 $ENV{'GDAL_CACHEMAX'} = $mem;
 
 
-Spork::setup(1);
+eval { require Spork; Spork::setup(1); 1 };
 
 
 $SIG{INT} = sub  {

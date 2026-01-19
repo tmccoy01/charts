@@ -65,7 +65,7 @@ log "Cleanup: keep newest $KEEP_CYCLES cycle(s) per chart type"
 
 # Allow list of file extensions we keep inside cycle directories.
 # Goal: keep processed rasters + any minimal sidecars/indexes.
-KEEP_EXT_RE='\.(tif|tiff|tfw|prj|ovr|aux\.xml|xml|shp|shx|dbf|qix|cpg|sbn|sbx)$'
+KEEP_EXT_RE='\.(tif|tiff|tfw|prj|ovr|aux\.xml|xml|aref|bref|shp|shx|dbf|qix|cpg|sbn|sbx)$'
 
 cleanup_type_dir() {
   local type_dir="$1"

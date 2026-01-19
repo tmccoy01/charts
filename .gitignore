@@ -27,6 +27,7 @@ mapserv/charts/enrl/
 mapserv/charts/enrh/
 mapserv/charts/enra/
 mapserv/charts/misc/
+*.bref
 *.egg-info
 
 # Ignore working and index directories created by makemap3.pl
@@ -46,3 +47,6 @@ mapserv/charts/index/
 
 # Opencode
 .opencode
+
+# Ruff
+.ruff-cache/

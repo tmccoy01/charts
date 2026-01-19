@@ -212,6 +212,53 @@ def print_progress(
         print()
 
 
+def ensure_aref_for_dir(target_dir: Path) -> None:
+    """Create `.aref` files from FAA .htm metadata (bbox) if missing.
+
+    The cropper scripts expect `<Chart Name>.aref` alongside each `.tif`.
+    FAA does not ship `.aref`, but it does ship an `.htm` containing
+    `dc.coverage.{x,y}.{min,max}` which we can use to build a rectangular ref.
+
+    This yields a conservative crop polygon (bbox) that is good enough to
+    enable cropping and bref generation.
+    """
+
+    def meta(name: str, text: str) -> Optional[str]:
+        m = re.search(rf'name="{re.escape(name)}"[^>]*content="([^"]+)"', text)
+        return m.group(1) if m else None
+
+    for tif_path in target_dir.glob("*.tif"):
+        aref_path = tif_path.with_suffix(".aref")
+        if aref_path.exists():
+            continue
+
+        htm_path = tif_path.with_suffix(".htm")
+        if not htm_path.exists():
+            continue
+
+        try:
+            text = htm_path.read_text(encoding="utf-8", errors="ignore")
+            x_min = meta("dc.coverage.x.min", text)
+            x_max = meta("dc.coverage.x.max", text)
+            y_min = meta("dc.coverage.y.min", text)
+            y_max = meta("dc.coverage.y.max", text)
+            if not (x_min and x_max and y_min and y_max):
+                continue
+
+            # Use geographic coords with linetype "g" (lon/lat).
+            # Order points around rectangle.
+            lines = [
+                f"g {x_min} {y_min} g",
+                f"g {x_min} {y_max} g",
+                f"g {x_max} {y_max} g",
+                f"g {x_max} {y_min} g",
+            ]
+            aref_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        except Exception:
+            # Best-effort; skip if anything looks odd.
+            continue
+
+
 def download_file(url: str, quiet: bool = False) -> str:
     """
     Downloads a zip file from the given URL, determines its chart type and date,
@@ -270,6 +317,7 @@ def download_file(url: str, quiet: bool = False) -> str:
             with zipfile.ZipFile(local_path, "r") as zip_ref:
                 zip_ref.extractall(target_dir)
             status = "Downloaded"
+            ensure_aref_for_dir(target_dir)
             if DELETE_ZIPS and local_path.exists():
                 local_path.unlink(missing_ok=True)
         except (zipfile.BadZipFile, NotImplementedError) as e:
@@ -285,6 +333,7 @@ def download_file(url: str, quiet: bool = False) -> str:
                     capture_output=True,
                 )
                 status = "Downloaded (Fallback)"
+                ensure_aref_for_dir(target_dir)
                 if DELETE_ZIPS and local_path.exists():
                     local_path.unlink(missing_ok=True)
             except subprocess.CalledProcessError as se:

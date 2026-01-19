@@ -170,7 +170,12 @@ my $wkt = $data->Projection();
 my $sr = Geo::OSR::SpatialReference->new('WKT' => $wkt);
 my $p4 = $sr->ExportToProj4();
 #print $p4."\n";
-my $srout = Geo::OSR::SpatialReference->new('EPSG' => 4326) ; 
+my $srout = Geo::OSR::SpatialReference->new('EPSG' => 4326) ;
+
+# Force traditional GIS axis order (lon/lat) to avoid GDAL3+ EPSG axis-order issues.
+# In GDAL, 0 = traditional GIS order, 1 = authority compliant.
+$sr->SetAxisMappingStrategy(0);
+$srout->SetAxisMappingStrategy(0);
 
 my $reproj = new Geo::OSR::CoordinateTransformation($sr,$srout);
 my $invreproj = new Geo::OSR::CoordinateTransformation($srout,$sr);
@@ -357,7 +362,8 @@ $filelist[2] = {
       if (defined $bref_file) {close BREF;}
     close REF;
   } else {
-      die "Could not open ref file: $ref";
+      warn "Could not open ref file: $ref; proceeding without crop\n";
+      $nocrop = 1;
   };
 
   if (!$nocrop && ! @refbox) {
@@ -380,7 +386,6 @@ $file->{'stage'} =1;
   ######################################
   my @cutline;
 
-  print $refbox."\n";
   # now we have points, make lines
   for my $cki (0..@refbox - 1 ) {
     my $ckj = $cki+1;
@@ -556,7 +561,7 @@ for my $file (@filelist) {
       @da = ();
 }
 # "-wm" $mem
-  print_system "/home/mapserv/bin/local-gdalwarp","-r","cubic",(@gdalopts, @da),
+  print_system "gdalwarp","-r","cubic",(@gdalopts, @da),
   @{$file->{'gdalwarp_opts'}},$file->{'infile'},$file->{'outfile'} ;
   if ($?) { 
       die "gdalwarp: $?";
