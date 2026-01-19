@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     proj-data \
     libproj-dev \
     perl \
+    cpanminus \
+    build-essential \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -20,6 +22,10 @@ WORKDIR /home/mapserv
 COPY mapserv/mapserv.conf /etc/apache2/sites-available/charts.conf
 RUN a2ensite charts.conf
 RUN a2enmod cgi rewrite headers && a2dissite 000-default.conf
+
+# Perl deps required by `mapserv/bin/makemap3.pl`
+RUN cpanm --notest Geo::GDAL JSON Parallel::ForkManager DateTime || true
+
 RUN chmod +x /home/mapserv/bin/*.pl || true
 
 VOLUME /home/mapserv/charts

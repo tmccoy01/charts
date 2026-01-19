@@ -6,14 +6,10 @@ services:
     ports:
       - "8080:8080"
     volumes:
-      - ./mapproxy:/home/mapserv/mapproxy
-      - ./mapserv/mapfiles:/home/mapserv/mapfiles
+      - ./mapproxy:/app/config
       - mapproxy_cache:/cache
-      - ./scripts:/home/mapserv/scripts
-      - ./.env:/home/mapserv/.env
     environment:
       - MAPPROXY_PROCESSES=4
-      - MAPSERV_BASE_PATH=/home/mapserv
     depends_on:
       mapserver:
         condition: service_healthy
@@ -23,6 +19,20 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+  updater:
+    build:
+      context: .
+      dockerfile: mapproxy/Dockerfile
+    profiles: ["manual"]
+    volumes:
+      - ./mapserv/charts:/home/mapserv/charts
+      - ./.env:/app/.env
+    environment:
+      - CHARTS_BASE_DIR=/home/mapserv/charts
+      - CHART_TYPES=sec
+      - DELETE_ZIPS=1
+    command: ["python", "/app/download_charts.py"]
 
   mapserver:
     build:

@@ -28,6 +28,9 @@ RUN uv sync --frozen --no-install-project
 # Copy mapproxy config
 COPY mapproxy/ /app/config/
 
+# Copy downloader into image (for updater job)
+COPY download_charts.py /app/download_charts.py
+
 # Create cache directory
 RUN mkdir -p /cache && chmod 777 /cache
 VOLUME /cache

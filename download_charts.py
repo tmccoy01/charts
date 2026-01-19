@@ -24,9 +24,42 @@ import subprocess
 
 # Configuration
 from dotenv import load_dotenv
-load_dotenv()
-BASE_DIR = Path(os.getenv('CHARTS_BASE_DIR', 'mapserv/charts'))
-# BASE_DIR = Path("mapserv/charts")
+
+# Load .env but do not override real environment by default.
+# Docker/Compose sets container paths explicitly and we want those to win.
+# On macOS it’s common to accidentally have a stale CHARTS_BASE_DIR in the shell;
+# if it looks "unexpanded" (e.g. contains $(...)) or points at /home/mapserv,
+# then override it from .env.
+load_dotenv(interpolate=True)
+
+existing_charts_dir = os.getenv("CHARTS_BASE_DIR")
+if existing_charts_dir and (
+    "$(" in existing_charts_dir
+    or "${" in existing_charts_dir
+    or (sys.platform == "darwin" and existing_charts_dir.startswith("/home/mapserv"))
+):
+    load_dotenv(override=True, interpolate=True)
+
+BASE_DIR = Path(os.getenv("CHARTS_BASE_DIR", "mapserv/charts"))
+
+# Limit chart types (default: sectional only)
+# Examples:
+# - CHART_TYPES=sec
+# - CHART_TYPES=sec,tac
+CHART_TYPES = [
+    t.strip().lower() for t in os.getenv("CHART_TYPES", "sec").split(",") if t.strip()
+]
+
+# Cycle filtering:
+# - Default is "latest" to avoid downloading multiple cycles.
+# - Set CHART_CYCLE_POLICY=all to keep every cycle linked on FAA pages.
+# - Set CHART_CYCLE=YYYYMMDD to force a specific cycle.
+CHART_CYCLE_POLICY = os.getenv("CHART_CYCLE_POLICY", "latest").strip().lower()
+CHART_CYCLE = os.getenv("CHART_CYCLE", "").strip()
+
+# Disk savings: delete ZIPs after successful extraction.
+DELETE_ZIPS = os.getenv("DELETE_ZIPS", "1") == "1"
+
 VFR_URL = "https://www.faa.gov/air_traffic/flight_info/aeronav/digital_products/vfr/"
 IFR_URL = "https://www.faa.gov/air_traffic/flight_info/aeronav/digital_products/ifr/"
 
@@ -39,7 +72,7 @@ CATEGORY_MAP = {
     "Helicopter": "hel",
     "Enroute Low": "enrl",
     "Enroute High": "enrh",
-    "Enroute Area": "enra"
+    "Enroute Area": "enra",
 }
 
 # Regex to identify chart types from URLs
@@ -57,6 +90,57 @@ TYPE_PATTERNS: List[Tuple[str, str]] = [
 ]
 
 
+def chart_type_from_url(url: str) -> str:
+    """Return chart type code (sec/tac/hel/enrl/enrh/enra/misc) for a given URL."""
+    for pattern, code in TYPE_PATTERNS:
+        if re.search(pattern, url, re.IGNORECASE):
+            return code
+    return "misc"
+
+
+def cycle_from_url(url: str) -> Optional[str]:
+    """Extract YYYYMMDD cycle from URL path segment /MM-DD-YYYY/."""
+    date_match = re.search(r"/(\d{2}-\d{2}-\d{4})/", url)
+    if not date_match:
+        return None
+    try:
+        dt = datetime.strptime(date_match.group(1), "%m-%d-%Y")
+        return dt.strftime("%Y%m%d")
+    except ValueError:
+        return None
+
+
+def filter_links(links: List[str]) -> Tuple[List[str], Optional[str]]:
+    """Filter links by chart type and chart cycle policy.
+
+    Returns (filtered_links, selected_cycle).
+    """
+    # First filter by chart types
+    type_filtered = [u for u in links if chart_type_from_url(u) in CHART_TYPES]
+
+    if not type_filtered:
+        return ([], None)
+
+    # Explicit cycle overrides everything
+    if CHART_CYCLE:
+        return (
+            [u for u in type_filtered if cycle_from_url(u) == CHART_CYCLE],
+            CHART_CYCLE,
+        )
+
+    if CHART_CYCLE_POLICY == "all":
+        return (type_filtered, None)
+
+    # Default: latest
+    cycles = [c for c in (cycle_from_url(u) for u in type_filtered) if c]
+    if not cycles:
+        # If we can't detect cycles, fall back to no cycle filtering
+        return (type_filtered, None)
+
+    latest = max(cycles)
+    return ([u for u in type_filtered if cycle_from_url(u) == latest], latest)
+
+
 def get_url_content(url: str) -> Optional[str]:
     """
     Fetches the content of a URL using the standard urllib library.
@@ -70,7 +154,7 @@ def get_url_content(url: str) -> Optional[str]:
     print(f"Reading {url}...")
     try:
         with urllib.request.urlopen(url) as response:
-            return response.read().decode('utf-8')
+            return response.read().decode("utf-8")
     except urllib.error.URLError as e:
         print(f"Error fetching {url}: {e}")
         return None
@@ -90,13 +174,22 @@ class ZipLinkParser(HTMLParser):
         """
         Overrides the standard handle_starttag to find 'a' tags with specific hrefs.
         """
-        if tag == 'a':
-            href_val = dict(attrs).get('href')
-            if href_val and href_val.endswith('.zip') and "aeronav.faa.gov" in href_val:
+        if tag == "a":
+            href_val = dict(attrs).get("href")
+            if href_val and href_val.endswith(".zip") and "aeronav.faa.gov" in href_val:
                 self.links.append(href_val)
 
 
-def print_progress(iteration: int, total: int, prefix: str = '', suffix: str = '', decimals: int = 1, length: int = 50, fill: str = '█', printEnd: str = "\r") -> None:
+def print_progress(
+    iteration: int,
+    total: int,
+    prefix: str = "",
+    suffix: str = "",
+    decimals: int = 1,
+    length: int = 50,
+    fill: str = "█",
+    printEnd: str = "\r",
+) -> None:
     """
     Call in a loop to create terminal progress bar.
     @params:
@@ -109,11 +202,10 @@ def print_progress(iteration: int, total: int, prefix: str = '', suffix: str = '
         fill        - Optional  : bar fill character (Str)
         printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
     """
-    percent = ("{0:." + str(decimals) + "f}").format(100 *
-                                                     (iteration / float(total)))
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    sys.stdout.write(f'\r{prefix} |{bar}| {percent}% {suffix}')
+    bar = fill * filledLength + "-" * (length - filledLength)
+    sys.stdout.write(f"\r{prefix} |{bar}| {percent}% {suffix}")
     sys.stdout.flush()
     # Print New Line on Complete
     if iteration == total:
@@ -133,18 +225,17 @@ def download_file(url: str, quiet: bool = False) -> str:
         A status string indicating the result (e.g., "Downloaded", "Skipped", "Failed").
     """
     status = "Unknown"
-    filename = url.split('/')[-1]
+    filename = url.split("/")[-1]
 
-    # Identify type based on URL pattern
-    chart_type = "misc"
-    for pattern, code in TYPE_PATTERNS:
-        if re.search(pattern, url, re.IGNORECASE):
-            chart_type = code
-            break
+    chart_type = chart_type_from_url(url)
+
+    # Optional filtering by chart type
+    if CHART_TYPES and chart_type not in CHART_TYPES:
+        return "Skipped (Filtered)"
 
     # Extract date from URL (typical format: .../11-27-2025/...)
     # This ensures we organize charts by their effective date cycle.
-    date_match = re.search(r'/(\d{2}-\d{2}-\d{4})/', url)
+    date_match = re.search(r"/(\d{2}-\d{2}-\d{4})/", url)
     if not date_match:
         # Fallback: if date not found in URL, use current date.
         date_str = get_current_chart_cycle()
@@ -176,22 +267,26 @@ def download_file(url: str, quiet: bool = False) -> str:
         if not quiet:
             print(f"  Unzipping...")
         try:
-            with zipfile.ZipFile(local_path, 'r') as zip_ref:
+            with zipfile.ZipFile(local_path, "r") as zip_ref:
                 zip_ref.extractall(target_dir)
             status = "Downloaded"
+            if DELETE_ZIPS and local_path.exists():
+                local_path.unlink(missing_ok=True)
         except (zipfile.BadZipFile, NotImplementedError) as e:
             if not quiet:
                 print(
-                    f"\n  Warning: Python zipfile failed ({e}), trying system unzip...")
+                    f"\n  Warning: Python zipfile failed ({e}), trying system unzip..."
+                )
             # Fallback to system unzip command
             try:
                 subprocess.run(
-                    ["unzip", "-o", "-q",
-                        str(local_path), "-d", str(target_dir)],
+                    ["unzip", "-o", "-q", str(local_path), "-d", str(target_dir)],
                     check=True,
-                    capture_output=True
+                    capture_output=True,
                 )
                 status = "Downloaded (Fallback)"
+                if DELETE_ZIPS and local_path.exists():
+                    local_path.unlink(missing_ok=True)
             except subprocess.CalledProcessError as se:
                 print(f"\n  ERROR: System unzip also failed for {filename}")
                 status = "Failed"
@@ -213,11 +308,10 @@ def get_current_chart_cycle() -> str:
 
     # Find the latest date directory
     date_dirs = []
-    for chart_type in ['sec', 'tac', 'hel', 'enrl', 'enrh', 'enra']:
+    for chart_type in ["sec", "tac", "hel", "enrl", "enrh", "enra"]:
         type_dir = charts_base / chart_type
         if type_dir.exists():
-            date_dirs.extend(
-                [d.name for d in type_dir.iterdir() if d.is_dir()])
+            date_dirs.extend([d.name for d in type_dir.iterdir() if d.is_dir()])
     if date_dirs:
         return max(date_dirs)
     return datetime.now().strftime("%Y%m%d")
@@ -237,41 +331,78 @@ def main() -> None:
     # Ensure base directory exists
     BASE_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 1. Scrape VFR Charts
-    html_vfr = get_url_content(VFR_URL)
-    if html_vfr:
-        parser = ZipLinkParser()
-        parser.feed(html_vfr)
-        vfr_links = list(set(parser.links))
-        print(f"Found {len(vfr_links)} VFR chart links.")
+    vfr_types = {"sec", "tac", "hel"}
+    ifr_types = {"enrl", "enrh", "enra"}
 
-        print("Downloading VFR charts...")
-        # Initial call to print 0% progress
-        print_progress(0, len(vfr_links), prefix='VFR Progress:',
-                       suffix='Complete', length=40)
+    # 1. Scrape VFR Charts (only if any requested types are VFR)
+    if any(t in vfr_types for t in CHART_TYPES):
+        html_vfr = get_url_content(VFR_URL)
+        if html_vfr:
+            parser = ZipLinkParser()
+            parser.feed(html_vfr)
+            vfr_links = list(set(parser.links))
+            filtered, selected_cycle = filter_links(vfr_links)
+            print(
+                f"Found {len(vfr_links)} VFR chart links ({len(filtered)} after filtering)."
+            )
+            if selected_cycle:
+                print(f">>> Selected chart cycle (VFR): {selected_cycle}")
 
-        for i, link in enumerate(vfr_links):
-            download_file(link, quiet=True)
-            print_progress(i + 1, len(vfr_links),
-                           prefix='VFR Progress:', suffix='Complete', length=40)
+            print("Downloading VFR charts...")
+            print_progress(
+                0,
+                len(filtered) or 1,
+                prefix="VFR Progress:",
+                suffix="Complete",
+                length=40,
+            )
 
-    # 2. Scrape IFR Charts
-    html_ifr = get_url_content(IFR_URL)
-    if html_ifr:
-        parser = ZipLinkParser()
-        parser.feed(html_ifr)
-        ifr_links = list(set(parser.links))
-        print(f"Found {len(ifr_links)} IFR chart links.")
+            for i, link in enumerate(filtered):
+                download_file(link, quiet=True)
+                print_progress(
+                    i + 1,
+                    len(filtered) or 1,
+                    prefix="VFR Progress:",
+                    suffix="Complete",
+                    length=40,
+                )
+    else:
+        print(">>> Skipping VFR page scrape (no VFR chart types requested)")
 
-        print("Downloading IFR charts...")
-        # Initial call to print 0% progress
-        print_progress(0, len(ifr_links), prefix='IFR Progress:',
-                       suffix='Complete', length=40)
+    # 2. Scrape IFR Charts (only if any requested types are IFR)
+    if any(t in ifr_types for t in CHART_TYPES):
+        html_ifr = get_url_content(IFR_URL)
+        if html_ifr:
+            parser = ZipLinkParser()
+            parser.feed(html_ifr)
+            ifr_links = list(set(parser.links))
+            filtered, selected_cycle = filter_links(ifr_links)
+            print(
+                f"Found {len(ifr_links)} IFR chart links ({len(filtered)} after filtering)."
+            )
+            if selected_cycle:
+                print(f">>> Selected chart cycle (IFR): {selected_cycle}")
 
-        for i, link in enumerate(ifr_links):
-            download_file(link, quiet=True)
-            print_progress(i + 1, len(ifr_links),
-                           prefix='IFR Progress:', suffix='Complete', length=40)
+            print("Downloading IFR charts...")
+            print_progress(
+                0,
+                len(filtered) or 1,
+                prefix="IFR Progress:",
+                suffix="Complete",
+                length=40,
+            )
+
+            for i, link in enumerate(filtered):
+                download_file(link, quiet=True)
+                print_progress(
+                    i + 1,
+                    len(filtered) or 1,
+                    prefix="IFR Progress:",
+                    suffix="Complete",
+                    length=40,
+                )
+    else:
+        print(">>> Skipping IFR page scrape (no IFR chart types requested)")
 
     print("\n>>> Download complete.")
 

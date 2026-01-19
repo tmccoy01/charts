@@ -12,41 +12,11 @@ layers:
   - name: sec
     title: Sectional Charts
     sources: [sec_cache]
-  - name: tac
-    title: Terminal Area Charts
-    sources: [tac_cache]
-  - name: hel
-    title: Helicopter Charts
-    sources: [hel_cache]
-  - name: enrl
-    title: IFR Enroute Low
-    sources: [enrl_cache]
-  - name: enrh
-    title: IFR Enroute High
-    sources: [enrh_cache]
-  - name: enra
-    title: IFR Enroute Area
-    sources: [enra_cache]
 
 caches:
   sec_cache:
     grids: [webmercator, geodetic]
     sources: [sec_wms]
-  tac_cache:
-    grids: [webmercator, geodetic]
-    sources: [tac_wms]
-  hel_cache:
-    grids: [webmercator, geodetic]
-    sources: [hel_wms]
-  enrl_cache:
-    grids: [webmercator, geodetic]
-    sources: [enrl_wms]
-  enrh_cache:
-    grids: [webmercator, geodetic]
-    sources: [enrh_wms]
-  enra_cache:
-    grids: [webmercator, geodetic]
-    sources: [enra_wms]
 
 sources:
   sec_wms:
@@ -54,36 +24,6 @@ sources:
     req:
       url: http://mapserver/mapserv
       layers: sec
-      transparent: true
-  tac_wms:
-    type: wms
-    req:
-      url: http://mapserver/mapserv
-      layers: tac
-      transparent: true
-  hel_wms:
-    type: wms
-    req:
-      url: http://mapserver/mapserv
-      layers: hel
-      transparent: true
-  enrl_wms:
-    type: wms
-    req:
-      url: http://mapserver/mapserv
-      layers: enrl
-      transparent: true
-  enrh_wms:
-    type: wms
-    req:
-      url: http://mapserver/mapserv
-      layers: enrh
-      transparent: true
-  enra_wms:
-    type: wms
-    req:
-      url: http://mapserver/mapserv
-      layers: enra
       transparent: true
 
 grids:

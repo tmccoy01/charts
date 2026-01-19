@@ -368,7 +368,6 @@ version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
-    { name = "gdal" },
     { name = "gunicorn" },
     { name = "lxml" },
     { name = "mapproxy" },
@@ -404,7 +403,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.11.0" },
-    { name = "gdal", specifier = "==3.10.3" },
     { name = "gunicorn", specifier = ">=20.0.4" },
     { name = "lxml", specifier = ">=4.9.0" },
     { name = "mapproxy", specifier = ">=2.0.0" },
@@ -431,12 +429,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/a7/b2/4140c69c6a6643291
 wheels = [
     { url = "https://files.pythonhosted.org/packages/da/71/ae30dadffc90b9006d77af76b393cb9dfbfc9629f339fc1574a1c52e6806/future-1.0.0-py3-none-any.whl", hash = "sha256:929292d34f5872e70396626ef385ec22355a1fae8ad29e1a734c3e43f9fbc216", size = 491326, upload-time = "2024-02-21T11:52:35.956Z" },
 ]
-
-[[package]]
-name = "gdal"
-version = "3.10.3"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/06/f9/a9a9496c8dc558c4c16a0c53283501fe3098b26536d5f475d378c8ed3437/gdal-3.10.3.tar.gz", hash = "sha256:b5550650daeeae8e41091581d9aea7d75a9f15b0ebbeb8c96e37458fa02264cd", size = 838170, upload-time = "2025-04-07T09:57:20.729Z" }
 
 [[package]]
 name = "gunicorn"
