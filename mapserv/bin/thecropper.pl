@@ -521,18 +521,17 @@ eval {
 
     open OUT,">",$vrt or die;
 
-    print OUT <<END;
-    <OGRVRTDataSource>
-        <OGRVRTLayer name="${csvbase}">
-            <SrcDataSource relativeToVRT="1">${csvshort}</SrcDataSource>
-            <GeometryType>wkbPolygon</GeometryType>
-            <FID>ID</FID>
-            <GeometryField encoding="WKT" field="THEGEOM" />
-            <LayerSRS>epsg:4326</LayerSRS>
-        </OGRVRTLayer>
-    </OGRVRTDataSource>
-
-    END
+    print OUT <<"END";
+<OGRVRTDataSource>
+    <OGRVRTLayer name="$csvbase">
+        <SrcDataSource relativeToVRT="1">$csvshort</SrcDataSource>
+        <GeometryType>wkbPolygon</GeometryType>
+        <FID>ID</FID>
+        <GeometryField encoding="WKT" field="THEGEOM" />
+        <LayerSRS>epsg:4326</LayerSRS>
+    </OGRVRTLayer>
+</OGRVRTDataSource>
+END
 
     close OUT;
     $file->{'gdalwarp_opts'} = ["-cutline",$vrt, "-crop_to_cutline" ];

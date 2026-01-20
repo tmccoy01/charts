@@ -431,11 +431,39 @@ docker compose run --rm updater
 
 ---
 
+## Step 22: Process Charts (Generate Tiles)
+
+After downloading, you need to process the charts to generate the map tiles. This crops, reprojects, and creates tile pyramids for each chart.
+
+```bash
+docker compose exec mapserver /home/mapserv/bin/makemap3.pl sec
+```
+
+| Chart Type | Argument | Processing Time |
+|------------|----------|-----------------|
+| Sectionals | `sec` | 30-60 minutes |
+| Terminal Area | `tac` | 15-30 minutes |
+| Helicopter | `hel` | 10-20 minutes |
+
+> **Note**: This step is CPU and memory intensive. The script runs `thecropper.pl` for each chart file, which handles georectification and pyramid generation.
+
+To reprocess charts (e.g., after updating or fixing issues):
+
+```bash
+# Clear the MapProxy cache first
+docker compose exec mapproxy rm -rf /cache/*
+
+# Then reprocess
+docker compose exec mapserver /home/mapserv/bin/makemap3.pl sec
+```
+
+---
+
 # Part 6: Pi-hole DNS Entry
 
 *Optional but recommended for easier access.*
 
-## Step 22: Add Local DNS Record
+## Step 23: Add Local DNS Record
 
 1. Open Pi-hole admin panel: `http://192.168.1.100/admin`
 2. Navigate to **Local DNS** > **DNS Records**
@@ -454,7 +482,7 @@ You can now access the service at `http://charts.local:8080`
 
 # Part 7: Google Earth Configuration
 
-## Step 23: Option A - Add as WMS Layer
+## Step 24: Option A - Add as WMS Layer
 
 1. Open **Google Earth Pro**
 2. Navigate to **Add** > **Image Overlay** (or `Ctrl+Shift+O`)
@@ -474,7 +502,7 @@ You can now access the service at `http://charts.local:8080`
 
 ---
 
-## Step 23: Option B - Add as KML Network Link
+## Step 24: Option B - Add as KML Network Link
 
 1. Open **Google Earth Pro**
 2. Navigate to **Add** > **Network Link**
@@ -491,7 +519,7 @@ You can now access the service at `http://charts.local:8080`
 
 # Part 8: Automatic Updates
 
-## Step 24: Configure Weekly Cron Job
+## Step 25: Configure Weekly Cron Job
 
 ```bash
 crontab -e
