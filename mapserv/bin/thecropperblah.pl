@@ -380,7 +380,7 @@ $file->{'stage'} =1;
   ######################################
   my @cutline;
 
-  print $refbox."\n";
+  print scalar(@refbox)." points\n";
   # now we have points, make lines
   for my $cki (0..@refbox - 1 ) {
     my $ckj = $cki+1;
