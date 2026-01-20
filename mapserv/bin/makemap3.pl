@@ -19,8 +19,8 @@ my $thecropper_path = "$bin_dir/thecropper.pl";
 my $thecropper2_path = "$bin_dir/thecropperblah.pl";
 
 # Add to library path
-use lib $perl_lib_dir;
-use lib;
+use lib '/home/mapserv/perl';
+use Spork;
 
 # use lib '/home/mapserv/perl';
 # use lib '/home/mapserv/perl';
