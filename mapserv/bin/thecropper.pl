@@ -135,7 +135,7 @@ eval {
         die "Input file does not exist: $i\n"
     }
 
-    my $infile = $tempfile;
+    my $basepath="/home/mapserv/";
     my $basepath="/home/mapserv/";
     my $shapeindex_work=$basepath."charts/work/";
     my $shapeindex_out=$basepath."charts/index/";
@@ -521,17 +521,18 @@ eval {
 
     open OUT,">",$vrt or die;
 
-    print OUT <<"END";
-<OGRVRTDataSource>
-    <OGRVRTLayer name="$csvbase">
-        <SrcDataSource relativeToVRT="1">$csvshort</SrcDataSource>
-        <GeometryType>wkbPolygon</GeometryType>
-        <FID>ID</FID>
-        <GeometryField encoding="WKT" field="THEGEOM" />
-        <LayerSRS>epsg:4326</LayerSRS>
-    </OGRVRTLayer>
-</OGRVRTDataSource>
-END
+    print OUT <<END;
+    <OGRVRTDataSource>
+        <OGRVRTLayer name="${csvbase}">
+            <SrcDataSource relativeToVRT="1">${csvshort}</SrcDataSource>
+            <GeometryType>wkbPolygon</GeometryType>
+            <FID>ID</FID>
+            <GeometryField encoding="WKT" field="THEGEOM" />
+            <LayerSRS>epsg:4326</LayerSRS>
+        </OGRVRTLayer>
+    </OGRVRTDataSource>
+
+    END
 
     close OUT;
     $file->{'gdalwarp_opts'} = ["-cutline",$vrt, "-crop_to_cutline" ];
@@ -577,7 +578,7 @@ END
 }
 
 if ($@) {
-    print "Error processing file: $@\n";
+    print "Error processing file: $@\n"
     exit 1;
 }
 unlink $tempfile;
