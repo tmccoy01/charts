@@ -23,7 +23,7 @@ METADATA
 "ows_enable_request"   "*"
 
         "wms_title"     "Charts WMS"
-        "wms_onlineresource"    "http://wms.example.com/cgi-bin/mapserv?map=/home/mapserv/map1.map"
+        "wms_onlineresource"    "http://localhost/cgi-bin/mapserv?map=/home/mapserv/mapfiles/map_tac.map"
 
         "wms_srs" "EPSG:4326 EPSG:3857 EPSG:900913"
 

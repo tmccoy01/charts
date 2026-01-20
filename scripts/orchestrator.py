@@ -32,7 +32,8 @@ def run_command(cmd, description="", check=True):
         )
         if result.stdout:
             logger.debug(f"Output: {result.stdout}")
-        return True
+        # Return success based on return code when check=False
+        return result.returncode == 0
     except subprocess.CalledProcessError as e:
         logger.error(f"Command failed: {e}")
         if e.stderr:

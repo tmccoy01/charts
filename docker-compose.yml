@@ -3,13 +3,14 @@ services:
     build:
       context: .
       dockerfile: mapproxy/Dockerfile
+    restart: unless-stopped
     ports:
       - "8080:8080"
     volumes:
       - ./mapproxy:/app/config
       - mapproxy_cache:/cache
     environment:
-      - MAPPROXY_PROCESSES=4
+      - MAPPROXY_PROCESSES=${MAPPROXY_PROCESSES:-4}
     depends_on:
       mapserver:
         condition: service_healthy
@@ -19,6 +20,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   updater:
     build:
@@ -30,14 +39,15 @@ services:
       - ./.env:/app/.env
     environment:
       - CHARTS_BASE_DIR=/home/mapserv/charts
-      - CHART_TYPES=sec
-      - DELETE_ZIPS=1
+      - CHART_TYPES=${CHART_TYPES:-sec}
+      - DELETE_ZIPS=${DELETE_ZIPS:-1}
     command: ["python", "/app/download_charts.py"]
 
   mapserver:
     build:
       context: .
       dockerfile: mapserv/Dockerfile
+    restart: unless-stopped
     volumes:
       - ./mapserv/mapfiles:/home/mapserv/mapfiles
       - ./mapserv/charts:/home/mapserv/charts
@@ -45,17 +55,28 @@ services:
       - ./mapserv/perl:/home/mapserv/perl
       - ./scripts:/home/mapserv/scripts
       - ./.env:/home/mapserv/.env
+      - ./logs/mapserv:/var/log/mapserv
+      - ./tmp/mapserv:/var/www/ms_tmp
     environment:
-      - MS_DEBUGLEVEL=0
+      - MS_DEBUGLEVEL=${MS_DEBUGLEVEL:-0}
       - MAPSERV_BASE_PATH=/home/mapserv
       - CHARTS_BASE_DIR=/home/mapserv/charts
-      - GDAL_CACHEMAX=768
+      - GDAL_CACHEMAX=${GDAL_CACHEMAX:-768}
+      - WMS_BASE_URL=${WMS_BASE_URL:-http://localhost:8080}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/mapserv?map=/home/mapserv/mapfiles/map1.map&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetCapabilities"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
 
 volumes:
   mapproxy_cache:

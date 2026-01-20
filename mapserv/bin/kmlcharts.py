@@ -1,11 +1,13 @@
 import simplekml
 import re
 import math
+import os
 from pathlib import Path
 
 
-BASE_PATH = Path(
-    "/Users/tannermccoy/Development/Work/charts/mapserv/charts/bref").glob("*SEC.bref")
+# Use environment variable or default to container path
+BREF_DIR = Path(os.getenv("BREF_DIR", "/home/mapserv/charts/bref"))
+BASE_PATH = BREF_DIR.glob("*SEC.bref")
 
 
 def angle_to(point: int) -> float:

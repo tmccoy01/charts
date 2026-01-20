@@ -17,8 +17,9 @@ my $perl_lib_dir = $ENV{PERL_LIB_DIR} || "$base_path/perl";
 # Path configuration
 # Use `thecropperblah.pl` as the primary cropper since `thecropper.pl` is not
 # compatible with strict/warnings in this repo state.
+# Fall back to thecropper.pl if thecropperblah.pl fails.
 my $thecropper_path = "$bin_dir/thecropperblah.pl";
-my $thecropper2_path = "$bin_dir/thecropperblah.pl";
+my $thecropper2_path = "$bin_dir/thecropper.pl";
 
 # Add to library path (runtime-safe)
 BEGIN {

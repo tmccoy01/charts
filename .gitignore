@@ -45,8 +45,9 @@ mapserv/charts/index/
 !mapserv/charts/bref/
 !mapserv/charts/*.sh
 
-# Opencode
+# Opencode and Claude
 .opencode
+.claude
 
 # Ruff
-.ruff-cache/
+.ruff_cache

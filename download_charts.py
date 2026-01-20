@@ -254,8 +254,9 @@ def ensure_aref_for_dir(target_dir: Path) -> None:
                 f"g {x_max} {y_min} g",
             ]
             aref_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-        except Exception:
-            # Best-effort; skip if anything looks odd.
+        except (IOError, OSError, ValueError) as e:
+            # Best-effort; skip if file read/write fails or metadata is malformed.
+            print(f"  Warning: Could not generate .aref for {tif_path.name}: {e}")
             continue
 
 
@@ -341,7 +342,7 @@ def download_file(url: str, quiet: bool = False) -> str:
                 status = "Failed"
                 # Cleanup bad zip
                 if local_path.exists():
-                    os.remove(local_path)
+                    local_path.unlink()
     except Exception as e:
         print(f"\n  Failed: {filename} - {e}")
         status = "Failed"

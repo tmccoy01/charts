@@ -2,9 +2,7 @@ use inc::Module::Install;
   
 all_from 'lib/Spork.pm';
 requires_from 'lib/Spork.pm';
-ack_xxx;
-readme_from;
-version_check;
+# Removed invalid Module::Install methods: ack_xxx, readme_from, version_check
 manifest_skip 'clean';
   
 install_script 'bin/spork';
