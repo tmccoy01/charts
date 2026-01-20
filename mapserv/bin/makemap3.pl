@@ -15,11 +15,11 @@ my $bin_dir = $ENV{BIN_DIR} || "$base_path/bin";
 my $perl_lib_dir = $ENV{PERL_LIB_DIR} || "$base_path/perl";
 
 # Path configuration
-# Use `thecropperblah.pl` as the primary cropper since `thecropper.pl` is not
-# compatible with strict/warnings in this repo state.
-# Fall back to thecropper.pl if thecropperblah.pl fails.
-my $thecropper_path = "$bin_dir/thecropperblah.pl";
-my $thecropper2_path = "$bin_dir/thecropper.pl";
+# Use `thecropper.pl` as the primary cropper - it has finer cutline resolution
+# (divides by 6.3 vs 12.3) which produces smoother chart boundaries and
+# eliminates visible patchwork between adjacent charts.
+my $thecropper_path = "$bin_dir/thecropper.pl";
+my $thecropper2_path = "$bin_dir/thecropperblah.pl";
 
 # Add to library path (runtime-safe)
 BEGIN {

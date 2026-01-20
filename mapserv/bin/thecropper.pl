@@ -135,7 +135,7 @@ eval {
         die "Input file does not exist: $i\n"
     }
 
-    my $basepath="/home/mapserv/";
+    my $infile = $tempfile;
     my $basepath="/home/mapserv/";
     my $shapeindex_work=$basepath."charts/work/";
     my $shapeindex_out=$basepath."charts/index/";
@@ -578,7 +578,7 @@ eval {
 }
 
 if ($@) {
-    print "Error processing file: $@\n"
+    print "Error processing file: $@\n";
     exit 1;
 }
 unlink $tempfile;
